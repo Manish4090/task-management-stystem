@@ -6,13 +6,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Task;
 use Carbon\Carbon;
+use App\Events\TaskCreatedEvent;
+use App\Events\TaskUpdatedEvent;
+use Illuminate\Support\Facades\Queue;
 
 class TaskController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-   
     public function index()
     {
         $tasks = Task::where('user_id', auth()->user()->id)->get();
@@ -37,7 +39,8 @@ class TaskController extends Controller
 
         // Save the task to the database
         $task->save();
-
+        //Queue::later(now()->addSeconds(5), new TaskCreatedEvent($task, auth()->user()->email, now()));
+        event(new TaskCreatedEvent($task, auth()->user()->email));
         return response()->json(['message' => 'Task created successfully', 'task' => $task], 201);
     }
 
@@ -60,6 +63,7 @@ class TaskController extends Controller
         //dd($request->all(), $id);
         $task = Task::findOrFail($id);
         $task->update($request->all());
+        event(new TaskUpdatedEvent($task, auth()->user()->email));
         return response()->json(['message' => 'Task updated successfully', 'task' => $task], 201);
     }
 
